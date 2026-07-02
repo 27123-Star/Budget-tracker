@@ -8,7 +8,10 @@ tailwind.config = {
         }
     }
 };
+const SUPABASE_URL = 'https://ccxunwraeilwugijcdel.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjeHVud3JhZWlsd3VnaWpjZGVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5OTA3NDgsImV4cCI6MjA5ODU2Njc0OH0.RhUzQvRnvaa71SE54TDYxV-Cn-tZhzPdWhifZKiqLfI';
 
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 (function() {
     'use strict';
 
