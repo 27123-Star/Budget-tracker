@@ -143,6 +143,15 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
             greeting.textContent = activeSession?.user ? `Welcome back, ${shortName}` : 'Welcome back, Architect';
             greeting.classList.remove('hidden');
         }
+
+        const deleteBtn = document.getElementById('delete-account-btn');
+        if (deleteBtn) {
+            if (activeSession?.user) {
+                deleteBtn.classList.remove('hidden');
+            } else {
+                deleteBtn.classList.add('hidden');
+            }
+        }
     }
 
     function showAuthMessage(message, type = 'info') {
@@ -291,6 +300,30 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
         activeSession = null;
         updateAuthUI();
         initializeAndHydrateState();
+    }
+
+    async function deleteAccountData() {
+        if (!supabase || !activeSession?.user) return;
+        const userId = activeSession.user.id;
+        if (!confirm('Delete your account data (profiles, transactions, goals, debts) from this project? This cannot be undone from the client.')) return;
+
+        try {
+            // Remove related rows
+            await supabase.from('transactions').delete().eq('user_id', userId);
+            await supabase.from('goals').delete().eq('user_id', userId);
+            await supabase.from('debts').delete().eq('user_id', userId);
+            await supabase.from('profiles').delete().eq('id', userId);
+
+            // Sign out the user locally
+            await supabase.auth.signOut();
+            activeSession = null;
+            updateAuthUI();
+            initializeAndHydrateState();
+            showAuthMessage('Account data removed from project. To fully delete the auth user, use the Supabase dashboard.', 'success');
+        } catch (err) {
+            console.error('Failed to delete account data:', err);
+            showAuthMessage('Failed to delete account data. Check console for details.', 'error');
+        }
     }
 
     function applyTheme() {
@@ -668,6 +701,13 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
                 openModal('auth-modal');
             }
         });
+
+        const deleteAccountBtn = document.getElementById('delete-account-btn');
+        if (deleteAccountBtn) {
+            deleteAccountBtn.addEventListener('click', async () => {
+                await deleteAccountData();
+            });
+        }
 
         document.getElementById('auth-switch-btn').addEventListener('click', () => {
             setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
