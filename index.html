@@ -26,6 +26,9 @@
             </div>
 
             <div class="flex items-center space-x-3">
+                <button id="auth-toggle-btn" class="px-3 py-2 rounded-lg border border-slate-700/70 bg-slate-800/70 text-sm font-semibold text-slate-200 hover:bg-slate-700 transition-all">Sign in</button>
+                <span id="auth-status-text" class="hidden sm:inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-300">Guest mode</span>
+
                 <button id="hand-cash-widget" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-slate-800 dark:bg-slate-800 light:bg-slate-100 hover:bg-slate-700 dark:hover:bg-slate-700 light:hover:bg-slate-200 border border-slate-700 dark:border-slate-700 light:border-slate-300 transition-all duration-150 glow-button">
                     <span class="text-xs font-semibold text-slate-400 dark:text-slate-400 light:text-slate-500 uppercase tracking-wider">Cash:</span>
                     <span id="hand-cash-display" class="text-sm font-bold text-emerald-400">$0.00</span>
@@ -195,7 +198,7 @@
                                 </div>
                                 <div>
                                     <p class="text-sm font-semibold text-slate-200 dark:text-slate-200 light:text-slate-800">Google Linked Ledger Engine Active</p>
-                                    <p class="text-xs text-emerald-400 flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse"></span>Connected as: user@gmail.com</p>
+                                    <p id="connected-account-email" class="text-xs text-emerald-400 flex items-center"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse"></span>Connected as: guest@local</p>
                                 </div>
                             </div>
                             <button id="lending-modal-trigger-btn" class="px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-400 text-white font-semibold text-sm transition-all shadow-md shadow-teal-500/10 glow-button">
@@ -367,6 +370,33 @@
         </div>
     </div>
 
+    <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden transition-all">
+        <div class="w-full max-w-md rounded-2xl border shadow-2xl p-6 bg-slate-900 border-slate-800 dark:bg-slate-900 dark:border-slate-800 light:bg-white light:border-slate-200 transform scale-95 transition-transform duration-200">
+            <div class="flex items-center justify-between border-b border-slate-800 dark:border-slate-800 light:border-slate-100 pb-3 mb-4">
+                <h3 id="auth-modal-title" class="text-lg font-bold text-slate-100 dark:text-slate-100 light:text-slate-900">Sign in to CoinFlow</h3>
+                <button type="button" class="modal-close-btn text-slate-400 hover:text-slate-200" data-modal="auth-modal">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form id="auth-form" class="space-y-4">
+                <div id="auth-message" class="hidden rounded-xl border border-slate-700/80 bg-slate-950/70 px-3 py-2 text-sm text-slate-300"></div>
+                <div>
+                    <label for="auth-email" class="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-500 mb-1">Email</label>
+                    <input type="email" id="auth-email" required class="w-full px-3 py-2 rounded-xl border bg-slate-950 border-slate-800 dark:bg-slate-950 dark:border-slate-800 light:bg-slate-50 light:border-slate-300 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+                </div>
+                <div>
+                    <label for="auth-password" class="block text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-400 light:text-slate-500 mb-1">Password</label>
+                    <input type="password" id="auth-password" minlength="6" required class="w-full px-3 py-2 rounded-xl border bg-slate-950 border-slate-800 dark:bg-slate-950 dark:border-slate-800 light:bg-slate-50 light:border-slate-300 text-sm focus:outline-none focus:border-indigo-500 transition-colors">
+                </div>
+                <div class="flex items-center justify-between pt-2">
+                    <button type="button" id="auth-switch-btn" class="text-sm font-semibold text-teal-300 hover:text-teal-200 transition-colors">Create account</button>
+                    <button type="submit" id="auth-submit-btn" class="px-5 py-2 rounded-lg bg-teal-500 hover:bg-teal-400 text-white text-sm font-semibold transition-colors">Sign in</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js" defer></script>
 </body>
 </html>

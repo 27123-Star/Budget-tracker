@@ -8,10 +8,11 @@ tailwind.config = {
         }
     }
 };
+
 const SUPABASE_URL = 'https://ccxunwraeilwugijcdel.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjeHVud3JhZWlsd3VnaWpjZGVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5OTA3NDgsImV4cCI6MjA5ODU2Njc0OH0.RhUzQvRnvaa71SE54TDYxV-Cn-tZhzPdWhifZKiqLfI';
+const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 (function() {
     'use strict';
 
@@ -39,6 +40,8 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let state = {};
     let chartInstance = null;
+    let activeSession = null;
+    let authMode = 'signin';
 
     function parseTransactionDate(dateStr) {
         if (!dateStr) return new Date();
@@ -49,9 +52,31 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         return new Date(dateStr);
     }
 
+    function getStorageKey() {
+        return activeSession?.user?.id ? `COINFLOW_APP_STATE_${activeSession.user.id}` : 'COINFLOW_APP_STATE';
+    }
+
+    function normalizeState(candidate = {}) {
+        return {
+            transactions: Array.isArray(candidate.transactions) ? candidate.transactions : [],
+            goals: Array.isArray(candidate.goals) ? candidate.goals : [],
+            debts: Array.isArray(candidate.debts) ? candidate.debts : [],
+            categories: Array.isArray(candidate.categories) && candidate.categories.length ? candidate.categories : [...DEFAULTS.categories],
+            handCash: typeof candidate.handCash === 'number' ? candidate.handCash : DEFAULTS.handCash,
+            theme: candidate.theme === 'light' ? 'light' : 'dark'
+        };
+    }
+
+    function persistLocalState() {
+        localStorage.setItem(getStorageKey(), JSON.stringify(state));
+    }
+
     function saveState() {
-        localStorage.setItem('COINFLOW_APP_STATE', JSON.stringify(state));
+        persistLocalState();
         renderUI();
+        if (activeSession?.user && supabase) {
+            void syncToSupabase();
+        }
     }
 
     function isValidAppState(candidate) {
@@ -66,33 +91,206 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     function initializeAndHydrateState(forcePurge = false) {
         if (forcePurge) {
-            localStorage.removeItem('COINFLOW_APP_STATE');
+            localStorage.removeItem(getStorageKey());
         }
 
-        const cached = localStorage.getItem('COINFLOW_APP_STATE');
+        const cached = localStorage.getItem(getStorageKey());
         if (cached && !forcePurge) {
             try {
                 const parsed = JSON.parse(cached);
                 if (!isValidAppState(parsed)) {
                     throw new Error('Corrupted schema detection state reset.');
                 }
-                state = parsed;
+                state = normalizeState(parsed);
             } catch (e) {
-                state = JSON.parse(JSON.stringify(DEFAULTS));
+                state = normalizeState(JSON.parse(JSON.stringify(DEFAULTS)));
             }
         } else {
-            state = JSON.parse(JSON.stringify(DEFAULTS));
+            state = normalizeState(JSON.parse(JSON.stringify(DEFAULTS)));
         }
-
-        state.transactions = Array.isArray(state.transactions) ? state.transactions : [];
-        state.goals = Array.isArray(state.goals) ? state.goals : [];
-        state.debts = Array.isArray(state.debts) ? state.debts : [];
-        state.categories = Array.isArray(state.categories) ? state.categories : [];
-        state.handCash = typeof state.handCash === 'number' ? state.handCash : DEFAULTS.handCash;
-        state.theme = state.theme === 'light' ? 'light' : 'dark';
 
         applyTheme();
         renderUI();
+    }
+
+    function updateAuthUI() {
+        const authButton = document.getElementById('auth-toggle-btn');
+        const authStatus = document.getElementById('auth-status-text');
+        const connectedEmail = document.getElementById('connected-account-email');
+        const greeting = document.getElementById('user-greeting');
+
+        if (authButton) {
+            authButton.textContent = activeSession?.user ? 'Logout' : 'Sign in';
+            authButton.className = activeSession?.user
+                ? 'px-3 py-2 rounded-lg border border-rose-500/30 bg-rose-500/10 text-sm font-semibold text-rose-200 hover:bg-rose-500/20 transition-all'
+                : 'px-3 py-2 rounded-lg border border-slate-700/70 bg-slate-800/70 text-sm font-semibold text-slate-200 hover:bg-slate-700 transition-all';
+        }
+
+        if (authStatus) {
+            authStatus.textContent = activeSession?.user ? 'Synced' : 'Guest mode';
+            authStatus.className = activeSession?.user
+                ? 'hidden sm:inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-300'
+                : 'hidden sm:inline-flex items-center rounded-full border border-slate-700/70 bg-slate-800/70 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-300';
+        }
+
+        if (connectedEmail) {
+            const emailLabel = activeSession?.user?.email || 'guest@local';
+            connectedEmail.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse"></span>Connected as: ${emailLabel}`;
+        }
+
+        if (greeting) {
+            const shortName = activeSession?.user?.email?.split('@')[0] || 'Architect';
+            greeting.textContent = activeSession?.user ? `Welcome back, ${shortName}` : 'Welcome back, Architect';
+            greeting.classList.remove('hidden');
+        }
+    }
+
+    function showAuthMessage(message, type = 'info') {
+        const authMessage = document.getElementById('auth-message');
+        if (!authMessage) return;
+        authMessage.textContent = message;
+        authMessage.className = type === 'error'
+            ? 'rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200'
+            : type === 'success'
+                ? 'rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200'
+                : 'rounded-xl border border-slate-700/80 bg-slate-950/70 px-3 py-2 text-sm text-slate-300';
+        authMessage.classList.remove('hidden');
+    }
+
+    function setAuthMode(mode) {
+        authMode = mode;
+        const title = document.getElementById('auth-modal-title');
+        const switchBtn = document.getElementById('auth-switch-btn');
+        const submitBtn = document.getElementById('auth-submit-btn');
+        if (title) {
+            title.textContent = mode === 'signup' ? 'Create your CoinFlow account' : 'Sign in to CoinFlow';
+        }
+        if (switchBtn) {
+            switchBtn.textContent = mode === 'signup' ? 'Back to sign in' : 'Create account';
+        }
+        if (submitBtn) {
+            submitBtn.textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+        }
+    }
+
+    async function syncToSupabase() {
+        if (!activeSession?.user || !supabase) return;
+        const userId = activeSession.user.id;
+
+        try {
+            await supabase.from('profiles').upsert({
+                id: userId,
+                email: activeSession.user.email,
+                handCash: state.handCash,
+                theme: state.theme,
+                categories: state.categories
+            }, { onConflict: 'id' });
+
+            await supabase.from('transactions').delete().eq('user_id', userId);
+            if (state.transactions.length) {
+                await supabase.from('transactions').insert(state.transactions.map(tx => ({ ...tx, user_id: userId })));
+            }
+
+            await supabase.from('goals').delete().eq('user_id', userId);
+            if (state.goals.length) {
+                await supabase.from('goals').insert(state.goals.map(goal => ({ ...goal, user_id: userId })));
+            }
+
+            await supabase.from('debts').delete().eq('user_id', userId);
+            if (state.debts.length) {
+                await supabase.from('debts').insert(state.debts.map(debt => ({ ...debt, user_id: userId })));
+            }
+        } catch (error) {
+            console.error('Supabase sync failed:', error);
+        }
+    }
+
+    async function loadRemoteState() {
+        if (!activeSession?.user || !supabase) {
+            return;
+        }
+
+        try {
+            const userId = activeSession.user.id;
+            const [{ data: profileData, error: profileError }, { data: txData, error: txError }, { data: goalData, error: goalError }, { data: debtData, error: debtError }] = await Promise.all([
+                supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+                supabase.from('transactions').select('*').eq('user_id', userId).order('date', { ascending: false }),
+                supabase.from('goals').select('*').eq('user_id', userId).order('date', { ascending: false }),
+                supabase.from('debts').select('*').eq('user_id', userId).order('date', { ascending: false })
+            ]);
+
+            if (profileError || txError || goalError || debtError) {
+                throw new Error('Your Supabase tables are not ready yet. The app is using local data until the schema is created.');
+            }
+
+            if (!profileData) {
+                await supabase.from('profiles').upsert({ id: userId, email: activeSession.user.email, handCash: state.handCash, theme: state.theme, categories: state.categories }, { onConflict: 'id' });
+            }
+
+            state = normalizeState({
+                transactions: (txData || []).map(item => ({ ...item, id: item.id })),
+                goals: (goalData || []).map(item => ({ ...item, id: item.id })),
+                debts: (debtData || []).map(item => ({ ...item, id: item.id })),
+                handCash: profileData?.handCash ?? state.handCash,
+                theme: profileData?.theme ?? state.theme,
+                categories: Array.isArray(profileData?.categories) && profileData.categories.length ? profileData.categories : state.categories
+            });
+
+            persistLocalState();
+            applyTheme();
+            renderUI();
+            updateAuthUI();
+        } catch (error) {
+            console.error('Supabase load failed:', error);
+            showAuthMessage(error.message || 'Supabase could not be reached. Local data is still available.', 'error');
+        }
+    }
+
+    async function handleAuthSubmit(event) {
+        event.preventDefault();
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value;
+        const authForm = document.getElementById('auth-form');
+
+        if (!email || !password) {
+            showAuthMessage('Please enter both an email and a password.', 'error');
+            return;
+        }
+
+        if (!supabase) {
+            showAuthMessage('Supabase is not available in this browser session.', 'error');
+            return;
+        }
+
+        try {
+            showAuthMessage('Working...', 'info');
+            const { data, error } = authMode === 'signup'
+                ? await supabase.auth.signUp({ email, password })
+                : await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                throw error;
+            }
+
+            activeSession = data.session;
+            updateAuthUI();
+            closeModal('auth-modal');
+            authForm.reset();
+            if (activeSession?.user) {
+                await loadRemoteState();
+                showAuthMessage('Wallet synced to your account.', 'success');
+            }
+        } catch (error) {
+            showAuthMessage(error.message || 'Authentication failed.', 'error');
+        }
+    }
+
+    async function handleLogout() {
+        if (!supabase) return;
+        await supabase.auth.signOut();
+        activeSession = null;
+        updateAuthUI();
+        initializeAndHydrateState();
     }
 
     function applyTheme() {
@@ -461,6 +659,22 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             });
         });
 
+        document.getElementById('auth-toggle-btn').addEventListener('click', () => {
+            if (activeSession?.user) {
+                void handleLogout();
+            } else {
+                document.getElementById('auth-form').reset();
+                setAuthMode('signin');
+                openModal('auth-modal');
+            }
+        });
+
+        document.getElementById('auth-switch-btn').addEventListener('click', () => {
+            setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+        });
+
+        document.getElementById('auth-form').addEventListener('submit', handleAuthSubmit);
+
         document.getElementById('quick-add-btn').addEventListener('click', () => {
             document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
             openModal('transaction-modal');
@@ -623,9 +837,38 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         document.getElementById('borrowed-list-container').addEventListener('click', handleLendingInteractions);
     }
 
+    function initializeAuth() {
+        updateAuthUI();
+        setAuthMode('signin');
+        if (supabase) {
+            void supabase.auth.getSession().then(({ data }) => {
+                activeSession = data.session;
+                updateAuthUI();
+                if (activeSession?.user) {
+                    void loadRemoteState();
+                } else {
+                    initializeAndHydrateState();
+                }
+            });
+
+            supabase.auth.onAuthStateChange((_event, session) => {
+                activeSession = session;
+                updateAuthUI();
+                if (activeSession?.user) {
+                    void loadRemoteState();
+                } else {
+                    initializeAndHydrateState();
+                }
+            });
+        } else {
+            initializeAndHydrateState();
+        }
+    }
+
     function startApp() {
         initializeAndHydrateState();
         bindSystemEventDrivers();
+        initializeAuth();
     }
 
     if (document.readyState === 'loading') {
