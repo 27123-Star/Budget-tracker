@@ -890,6 +890,40 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
         document.getElementById('lent-list-container').addEventListener('click', handleLendingInteractions);
         document.getElementById('borrowed-list-container').addEventListener('click', handleLendingInteractions);
 
+        Object.keys(tabsMap).forEach(triggerId => {
+            const triggerEl = document.getElementById(triggerId);
+            
+            // 👉 Skip if tab element isn't found in current HTML
+            if (!triggerEl) return; 
+
+            triggerEl.addEventListener('click', function() {
+                // 1. Remove active state styling from all tab buttons
+                Object.keys(tabsMap).forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.classList.remove('border-emerald-500', 'text-emerald-400', 'bg-slate-800/50');
+                        el.classList.add('border-transparent', 'text-slate-400', 'hover:text-slate-200');
+                    }
+                });
+
+                // 2. Add active state styling to the clicked tab button
+                this.classList.remove('border-transparent', 'text-slate-400', 'hover:text-slate-200');
+                this.classList.add('border-emerald-500', 'text-emerald-400', 'bg-slate-800/50');
+
+                // 3. Hide all tab content panel views
+                Object.values(tabsMap).forEach(targetId => {
+                    const panel = document.getElementById(targetId);
+                    if (panel) panel.classList.add('hidden');
+                });
+
+                // 4. Reveal the specific content panel linked to this clicked tab
+                const targetPanelId = tabsMap[triggerId];
+                const activePanel = document.getElementById(targetPanelId);
+                if (activePanel) {
+                    activePanel.classList.remove('hidden');
+                }
+            });
+        });
         
     }
 
