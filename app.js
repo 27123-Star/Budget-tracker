@@ -889,6 +889,8 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
 
         document.getElementById('lent-list-container').addEventListener('click', handleLendingInteractions);
         document.getElementById('borrowed-list-container').addEventListener('click', handleLendingInteractions);
+
+        
     }
 
     function initializeAuth() {
