@@ -728,7 +728,9 @@ function bindSystemEventDrivers() {
             }
 
             if (triggerId === 'tab-trigger-analytics') {
-                rebuildAnalyticsSummary();
+                if (typeof rebuildAnalyticsSummary === 'function') {
+                    rebuildAnalyticsSummary();
+                }
             }
         });
     });
@@ -911,13 +913,19 @@ function bindSystemEventDrivers() {
     if (transactionForm) {
         transactionForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            const txDate = document.getElementById('tx-date');
+            const txDesc = document.getElementById('tx-description');
+            const txCat = document.getElementById('tx-category');
+            const txAmt = document.getElementById('tx-amount');
+            const txType = document.getElementById('tx-type');
+
             const newTx = {
                 id: 'tx-' + Date.now(),
-                date: document.getElementById('tx-date').value,
-                description: document.getElementById('tx-description').value.trim(),
-                category: document.getElementById('tx-category').value,
-                amount: Math.abs(parseFloat(document.getElementById('tx-amount').value)),
-                type: document.getElementById('tx-type').value
+                date: txDate ? txDate.value : new Date().toISOString().split('T')[0],
+                description: txDesc ? txDesc.value.trim() : 'Unnamed Transaction',
+                category: txCat ? txCat.value : 'General',
+                amount: txAmt ? Math.abs(parseFloat(txAmt.value)) : 0,
+                type: txType ? txType.value : 'expense'
             };
             state.transactions.push(newTx);
             closeModal('transaction-modal');
@@ -930,11 +938,15 @@ function bindSystemEventDrivers() {
     if (goalForm) {
         goalForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            const gName = document.getElementById('goal-name');
+            const gTarget = document.getElementById('goal-target');
+            const gCurrent = document.getElementById('goal-current');
+
             const newGoal = {
                 id: 'goal-' + Date.now(),
-                name: document.getElementById('goal-name').value.trim(),
-                target: Math.abs(parseInt(document.getElementById('goal-target').value, 10)),
-                current: Math.abs(parseInt(document.getElementById('goal-current').value, 10)),
+                name: gName ? gName.value.trim() : 'Goal Objective',
+                target: gTarget ? Math.abs(parseInt(gTarget.value, 10)) : 100,
+                current: gCurrent ? Math.abs(parseInt(gCurrent.value, 10)) : 0,
                 date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
             };
             state.goals.push(newGoal);
@@ -948,13 +960,19 @@ function bindSystemEventDrivers() {
     if (lendingForm) {
         lendingForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            const lDate = document.getElementById('lend-date');
+            const lEntity = document.getElementById('lend-entity');
+            const lEmail = document.getElementById('lend-email');
+            const lAmount = document.getElementById('lend-amount');
+            const lType = document.getElementById('lend-type');
+
             const newAgreement = {
                 id: 'debt-' + Date.now(),
-                date: document.getElementById('lend-date').value,
-                entityName: document.getElementById('lend-entity').value.trim(),
-                email: document.getElementById('lend-email').value.trim(),
-                amount: Math.abs(parseFloat(document.getElementById('lend-amount').value)),
-                type: document.getElementById('lend-type').value,
+                date: lDate ? lDate.value : new Date().toISOString().split('T')[0],
+                entityName: lEntity ? lEntity.value.trim() : 'Anonymous',
+                email: lEmail ? lEmail.value.trim() : '',
+                amount: lAmount ? Math.abs(parseFloat(lAmount.value)) : 0,
+                type: lType ? lType.value : 'lent',
                 settled: false
             };
             state.debts.push(newAgreement);
