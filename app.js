@@ -113,46 +113,47 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
         renderUI();
     }
 
-    function updateAuthUI() {
-        const authButton = document.getElementById('auth-toggle-btn');
-        const authStatus = document.getElementById('auth-status-text');
-        const connectedEmail = document.getElementById('connected-account-email');
-        const greeting = document.getElementById('user-greeting');
+   function updateAuthUI() {
+    const authButton = document.getElementById('auth-toggle-btn');
+    const authStatus = document.getElementById('auth-status-text');
+    const connectedEmail = document.getElementById('connected-account-email');
+    const greeting = document.getElementById('user-greeting');
 
-        if (authButton) {
-            authButton.textContent = activeSession?.user ? 'Logout' : 'Sign in';
-            authButton.className = activeSession?.user
-                ? 'px-3 py-2 rounded-lg border border-rose-500/30 bg-rose-500/10 text-sm font-semibold text-rose-200 hover:bg-rose-500/20 transition-all'
-                : 'px-3 py-2 rounded-lg border border-slate-700/70 bg-slate-800/70 text-sm font-semibold text-slate-200 hover:bg-slate-700 transition-all';
-        }
+    if (authButton) {
+        authButton.textContent = activeSession?.user ? 'Logout' : 'Sign in';
+        authButton.className = activeSession?.user
+            ? 'px-3 py-2 rounded-lg border border-rose-500/30 bg-rose-500/10 text-sm font-semibold text-rose-200 hover:bg-rose-500/20 transition-all'
+            : 'px-3 py-2 rounded-lg border border-slate-700/70 bg-slate-800/70 text-sm font-semibold text-slate-200 hover:bg-slate-700 transition-all';
+    }
 
-        if (authStatus) {
-            authStatus.textContent = activeSession?.user ? 'Synced' : 'Guest mode';
-            authStatus.className = activeSession?.user
-                ? 'hidden sm:inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-300'
-                : 'hidden sm:inline-flex items-center rounded-full border border-slate-700/70 bg-slate-800/70 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-300';
-        }
+    if (authStatus) {
+        authStatus.textContent = activeSession?.user ? 'Synced' : 'Guest mode';
+        authStatus.className = activeSession?.user
+            ? 'hidden sm:inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-300'
+            : 'hidden sm:inline-flex items-center rounded-full border border-slate-700/70 bg-slate-800/70 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-300';
+    }
 
-        if (connectedEmail) {
-            const emailLabel = activeSession?.user?.email || 'guest@local';
-            connectedEmail.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse"></span>Connected as: ${emailLabel}`;
-        }
+    // 👉 ADDED PROTECTION HERE
+    if (connectedEmail) {
+        const emailLabel = activeSession?.user?.email || 'guest@local';
+        connectedEmail.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse"></span>Connected as: ${emailLabel}`;
+    }
 
-        if (greeting) {
-            const shortName = activeSession?.user?.email?.split('@')[0] || 'Architect';
-            greeting.textContent = activeSession?.user ? `Welcome back, ${shortName}` : 'Welcome back, Architect';
-            greeting.classList.remove('hidden');
-        }
+    if (greeting) {
+        const shortName = activeSession?.user?.email?.split('@')[0] || 'Architect';
+        greeting.textContent = activeSession?.user ? `Welcome back, ${shortName}` : 'Welcome back, Architect';
+        greeting.classList.remove('hidden');
+    }
 
-        const deleteBtn = document.getElementById('delete-account-btn');
-        if (deleteBtn) {
-            if (activeSession?.user) {
-                deleteBtn.classList.remove('hidden');
-            } else {
-                deleteBtn.classList.add('hidden');
-            }
+    const deleteBtn = document.getElementById('delete-account-btn');
+    if (deleteBtn) {
+        if (activeSession?.user) {
+            deleteBtn.classList.remove('hidden');
+        } else {
+            deleteBtn.classList.add('hidden');
         }
     }
+}
 
     function showAuthMessage(message, type = 'info') {
         const authMessage = document.getElementById('auth-message');
