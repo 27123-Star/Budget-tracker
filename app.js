@@ -350,39 +350,52 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
     }
 
     function renderUI() {
-        let totalIncome = 0;
-        let totalExpenses = 0;
-        let totalLent = 0;
-        let totalBorrowed = 0;
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    let totalLent = 0;
+    let totalBorrowed = 0;
 
-        state.transactions.forEach(t => {
-            if (t.type === 'income') totalIncome += t.amount;
-            else if (t.type === 'expense') totalExpenses += t.amount;
-        });
+    state.transactions.forEach(t => {
+        if (t.type === 'income') totalIncome += t.amount;
+        else if (t.type === 'expense') totalExpenses += t.amount;
+    });
 
-        state.debts.forEach(d => {
-            if (d.settled) return;
-            if (d.type === 'lent') totalLent += d.amount;
-            else if (d.type === 'borrowed') totalBorrowed += d.amount;
-        });
+    state.debts.forEach(d => {
+        if (d.settled) return;
+        if (d.type === 'lent') totalLent += d.amount;
+        else if (d.type === 'borrowed') totalBorrowed += d.amount;
+    });
 
-        const totalBalance = totalIncome - totalExpenses - totalLent + totalBorrowed;
+    const totalBalance = totalIncome - totalExpenses - totalLent + totalBorrowed;
 
-        document.getElementById('hand-cash-display').innerText = formatCurrency(state.handCash);
-        document.getElementById('metric-total-balance').innerText = formatCurrency(totalBalance);
-        const formulaElement = document.getElementById('metric-balance-formula');
-        if (formulaElement) {
-            formulaElement.innerText = `Income ${formatCurrency(totalIncome)} - Expenses ${formatCurrency(totalExpenses)} - Lent ${formatCurrency(totalLent)} + Borrowed ${formatCurrency(totalBorrowed)} = ${formatCurrency(totalBalance)}`;
-        }
-        document.getElementById('metric-monthly-income').innerText = formatCurrency(totalIncome);
-        document.getElementById('metric-monthly-expenses').innerText = formatCurrency(totalExpenses);
+    // 👉 BALANCING SAFETY GUARDS HERE
+    const handCashDisp = document.getElementById('hand-cash-display');
+    if (handCashDisp) handCashDisp.innerText = formatCurrency(state.handCash);
 
-        const balanceCard = document.getElementById('metric-balance-card');
+    const totalBalDisp = document.getElementById('metric-total-balance');
+    if (totalBalDisp) totalBalDisp.innerText = formatCurrency(totalBalance);
+
+    const formulaElement = document.getElementById('metric-balance-formula');
+    if (formulaElement) {
+        formulaElement.innerText = `Income ${formatCurrency(totalIncome)} - Expenses ${formatCurrency(totalExpenses)} - Lent ${formatCurrency(totalLent)} + Borrowed ${formatCurrency(totalBorrowed)} = ${formatCurrency(totalBalance)}`;
+    }
+
+    const monthlyIncDisp = document.getElementById('metric-monthly-income');
+    if (monthlyIncDisp) monthlyIncDisp.innerText = formatCurrency(totalIncome);
+
+    const monthlyExpDisp = document.getElementById('metric-monthly-expenses');
+    if (monthlyExpDisp) monthlyExpDisp.innerText = formatCurrency(totalExpenses);
+
+    const balanceCard = document.getElementById('metric-balance-card');
+    if (balanceCard) {
         if (totalBalance < 0) {
             balanceCard.className = 'p-6 rounded-2xl border transition-all duration-200 bg-rose-500/10 border-rose-500/30 shadow-sm';
         } else {
             balanceCard.className = 'p-6 rounded-2xl border transition-all duration-200 bg-slate-900 border-slate-800 dark:bg-slate-900 dark:border-slate-800 light:bg-white light:border-slate-200 shadow-sm';
         }
+    }
+
+    // Keep the rest of your original renderUI() logic below this safely...
 
         const tableBody = document.getElementById('transaction-table-rows');
         tableBody.innerHTML = '';
