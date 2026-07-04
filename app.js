@@ -355,7 +355,6 @@ function updateAuthUI() {
 
     const totalBalance = totalIncome - totalExpenses - totalLent + totalBorrowed;
 
-    // 👉 BALANCING SAFETY GUARDS HERE
     const handCashDisp = document.getElementById('hand-cash-display');
     if (handCashDisp) handCashDisp.innerText = formatCurrency(state.handCash);
 
@@ -382,134 +381,134 @@ function updateAuthUI() {
         }
     }
 
-    // Keep the rest of your original renderUI() logic below this safely...
-
-        const tableBody = document.getElementById('transaction-table-rows');
-        tableBody.innerHTML = '';
-        const sortedTx = [...state.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        if (sortedTx.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-xs text-slate-500 font-medium tracking-wide">No transactions matched across active storage pipelines.</td></tr>';
+    // --- RENDER TABLE LISTS ---
+    const txRows = document.getElementById('transaction-table-rows');
+    if (txRows) {
+        txRows.innerHTML = '';
+        if (state.transactions.length === 0) {
+            txRows.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-sm text-slate-500">No transactions recorded in current context database.</td></tr>`;
         } else {
-            sortedTx.forEach(t => {
-                const parsedDate = parseTransactionDate(t.date);
-                const displayDate = parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                const isIncome = t.type === 'income';
-
+            [...state.transactions].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-800/20 dark:hover:bg-slate-800/20 light:hover:bg-slate-50/80 transition-colors';
+                tr.className = 'border-b border-slate-800/50 dark:border-slate-800/50 light:border-slate-100 hover:bg-slate-800/20 transition-colors';
+                
+                const typeBadge = t.type === 'income' 
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Inflow</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">Outflow</span>';
+                
+                const amtClass = t.type === 'income' ? 'text-emerald-400 font-semibold' : 'text-slate-200 dark:text-slate-200 light:text-slate-700';
+                const amtPrefix = t.type === 'income' ? '+' : '-';
+
                 tr.innerHTML = `
-                    <td class="py-3.5 pr-2 font-medium text-xs text-slate-400 dark:text-slate-400 light:text-slate-500 whitespace-nowrap">${displayDate}</td>
-                    <td class="py-3.5 px-2 font-semibold text-slate-200 dark:text-slate-200 light:text-slate-800 max-w-xs truncate" title="${t.description}">${t.description}</td>
-                    <td class="py-3.5 px-2 text-xs"><span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800 dark:bg-slate-800 light:bg-slate-100 border border-slate-700/50 dark:border-slate-700/50 light:border-slate-300 text-slate-300 dark:text-slate-300 light:text-slate-600">${t.category}</span></td>
-                    <td class="py-3.5 px-2 text-right font-bold ${isIncome ? 'text-emerald-400' : 'text-rose-400'}">${isIncome ? '+' : '-'}${formatCurrency(t.amount)}</td>
-                    <td class="py-3.5 pl-2 text-center">
-                        <button data-txid="${t.id}" class="delete-tx-btn p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all flex items-center justify-center mx-auto">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-400">${t.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-200 dark:text-slate-200 light:text-slate-800 font-medium">${t.description}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm"><span class="px-2 py-1 rounded-md bg-slate-800 text-slate-400 text-xs">${t.category}</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">${typeBadge}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${amtClass} text-right">${amtPrefix}${formatCurrency(t.amount)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <button data-txid="${t.id}" class="delete-tx-btn text-slate-600 hover:text-rose-400 transition-colors p-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-16v4M4 7h16"></path></svg>
                         </button>
                     </td>
                 `;
-                tableBody.appendChild(tr);
+                txRows.appendChild(tr);
             });
         }
+    }
 
-        const goalsContainer = document.getElementById('goals-list-container');
+    const goalsContainer = document.getElementById('goals-list-container');
+    if (goalsContainer) {
         goalsContainer.innerHTML = '';
-
         if (state.goals.length === 0) {
-            goalsContainer.innerHTML = '<p class="text-xs text-center text-slate-500 py-4">No active targets specified.</p>';
+            goalsContainer.innerHTML = `<div class="col-span-full p-6 text-center text-sm text-slate-500 border border-dashed border-slate-800 rounded-xl">Target allocation objectives empty.</div>`;
         } else {
             state.goals.forEach(g => {
-                const rawPct = (g.current / g.target) * 100;
-                const pct = Math.min(Math.round(rawPct), 100);
-
-                const item = document.createElement('div');
-                item.className = 'space-y-2 border-b border-slate-800/40 dark:border-slate-800/40 light:border-slate-100 pb-3 last:border-none last:pb-0';
-                item.innerHTML = `
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="font-semibold text-slate-200 dark:text-slate-200 light:text-slate-800 truncate max-w-[180px]" title="${g.name}">${g.name}</span>
-                        <span class="text-xs font-bold text-teal-300">${pct}%</span>
-                    </div>
-                    <div class="w-full h-2 rounded-full bg-slate-950 dark:bg-slate-950 light:bg-slate-100 overflow-hidden border border-slate-800/40 dark:border-slate-800/40 light:border-slate-200">
-                        <div class="h-full gradient-progress rounded-full transition-all duration-500" style="width: ${pct}%"></div>
-                    </div>
-                    <div class="flex items-center justify-between text-xs text-slate-400 dark:text-slate-400 light:text-slate-500">
-                        <span>${formatCurrency(g.current)} of <span class="font-semibold">${formatCurrency(g.target)}</span></span>
-                        <button data-goalid="${g.id}" class="delete-goal-btn text-slate-500 hover:text-rose-400 transition-colors">Delete Target</button>
-                    </div>
-                `;
-                goalsContainer.appendChild(item);
-            });
-        }
-
-        const lentContainer = document.getElementById('lent-list-container');
-        const borrowedContainer = document.getElementById('borrowed-list-container');
-
-        lentContainer.innerHTML = '';
-        borrowedContainer.innerHTML = '';
-
-        const activeLent = state.debts.filter(d => d.type === 'lent');
-        const activeBorrowed = state.debts.filter(d => d.type === 'borrowed');
-
-        if (activeLent.length === 0) {
-            lentContainer.innerHTML = '<p class="text-xs text-center text-slate-500 py-6">No assets lent out across active clusters.</p>';
-        } else {
-            activeLent.forEach(d => {
-                const row = document.createElement('div');
-                row.className = `p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${d.settled ? 'bg-slate-950/20 dark:bg-slate-950/20 light:bg-slate-50/50 border-slate-800/40 opacity-50' : 'bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border-slate-800 dark:border-slate-800 light:border-slate-200'}`;
-                row.innerHTML = `
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <h4 class="text-sm font-bold text-slate-200 dark:text-slate-200 light:text-slate-800">${d.entityName}</h4>
-                            ${d.settled ? '<span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Settled</span>' : ''}
+                const progressPct = Math.min(100, Math.round((g.current / g.target) * 100));
+                const card = document.createElement('div');
+                card.className = 'p-5 rounded-xl border bg-slate-900 border-slate-800 dark:bg-slate-900 dark:border-slate-800 light:bg-white light:border-slate-200';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <h4 class="text-sm font-semibold text-slate-200 dark:text-slate-200 light:text-slate-800">${g.name}</h4>
+                            <p class="text-xs text-slate-500">Target target limit window timeline constraint</p>
                         </div>
-                        <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-500 truncate max-w-[200px]">${d.email}</p>
-                        <span class="text-[10px] text-slate-500 block mt-0.5">${parseTransactionDate(d.date).toLocaleDateString()}</span>
+                        <button data-goalid="${g.id}" class="delete-goal-btn text-slate-600 hover:text-rose-400 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-16v4M4 7h16"></path></svg>
+                        </button>
                     </div>
-                    <div class="flex items-center justify-between sm:justify-end space-x-4">
-                        <span class="text-base font-bold text-emerald-400">${formatCurrency(d.amount)}</span>
-                        ${!d.settled ? `<button data-debtid="${d.id}" class="settle-debt-btn px-2.5 py-1 rounded bg-teal-500/10 hover:bg-teal-500 text-teal-300 hover:text-white border border-teal-500/20 text-xs font-semibold transition-all">Settle</button>` : `<button data-debtid="${d.id}" class="purge-debt-btn text-xs font-semibold text-slate-500 hover:text-rose-400 transition-colors">Clear</button>`}
+                    <div class="flex justify-between items-baseline text-xs text-slate-400 mb-2">
+                        <span>${formatCurrency(g.current)} Saved</span>
+                        <span class="font-bold text-slate-200">${progressPct}%</span>
                     </div>
+                    <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                        <div class="bg-teal-400 h-1.5 rounded-full transition-all duration-500" style="width: ${progressPct}%"></div>
+                    </div>
+                    <div class="text-[11px] text-slate-500 mt-2 text-right">Goal target: ${formatCurrency(g.target)}</div>
                 `;
-                lentContainer.appendChild(row);
+                goalsContainer.appendChild(card);
             });
         }
-
-        if (activeBorrowed.length === 0) {
-            borrowedContainer.innerHTML = '<p class="text-xs text-center text-slate-500 py-6">No outstanding liabilities discovered.</p>';
-        } else {
-            activeBorrowed.forEach(d => {
-                const row = document.createElement('div');
-                row.className = `p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all ${d.settled ? 'bg-slate-950/20 dark:bg-slate-950/20 light:bg-slate-50/50 border-slate-800/40 opacity-50' : 'bg-slate-950 dark:bg-slate-950 light:bg-slate-50 border-slate-800 dark:border-slate-800 light:border-slate-200'}`;
-                row.innerHTML = `
-                    <div>
-                        <div class="flex items-center space-x-2">
-                            <h4 class="text-sm font-bold text-slate-200 dark:text-slate-200 light:text-slate-800">${d.entityName}</h4>
-                            ${d.settled ? '<span class="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Settled</span>' : ''}
-                        </div>
-                        <p class="text-xs text-slate-400 dark:text-slate-400 light:text-slate-500 truncate max-w-[200px]">${d.email}</p>
-                        <span class="text-[10px] text-slate-500 block mt-0.5">${parseTransactionDate(d.date).toLocaleDateString()}</span>
-                    </div>
-                    <div class="flex items-center justify-between sm:justify-end space-x-4">
-                        <span class="text-base font-bold text-rose-400">${formatCurrency(d.amount)}</span>
-                        ${!d.settled ? `<button data-debtid="${d.id}" class="settle-debt-btn px-2.5 py-1 rounded bg-teal-500/10 hover:bg-teal-500 text-teal-300 hover:text-white border border-teal-500/20 text-xs font-semibold transition-all">Settle</button>` : `<button data-debtid="${d.id}" class="purge-debt-btn text-xs font-semibold text-slate-500 hover:text-rose-400 transition-colors">Clear</button>`}
-                    </div>
-                `;
-                borrowedContainer.appendChild(row);
-            });
-        }
-
-        const categoryDropdown = document.getElementById('tx-category');
-        categoryDropdown.innerHTML = '';
-        state.categories.forEach(cat => {
-            const opt = document.createElement('option');
-            opt.value = cat;
-            opt.innerText = cat;
-            categoryDropdown.appendChild(opt);
-        });
-
-        rebuildAnalyticsSummary();
     }
+
+    const lentContainer = document.getElementById('lent-list-container');
+    if (lentContainer) {
+        lentContainer.innerHTML = '';
+        const lentItems = state.debts.filter(d => d.type === 'lent');
+        if (lentItems.length === 0) {
+            lentContainer.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">No active receivables.</p>';
+        } else {
+            lentItems.forEach(d => {
+                const el = document.createElement('div');
+                el.className = `p-4 rounded-xl border flex justify-between items-center ${d.settled ? 'bg-slate-900/40 border-slate-800/40 opacity-50' : 'bg-slate-900 border-slate-800'}`;
+                el.innerHTML = `
+                    <div>
+                        <div class="font-semibold text-sm ${d.settled ? 'line-through text-slate-500' : 'text-slate-200'}">${d.entityName}</div>
+                        <div class="text-xs text-slate-500">${d.date} • ${d.email || 'No email specified'}</div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm font-bold ${d.settled ? 'text-slate-500' : 'text-emerald-400'}">${formatCurrency(d.amount)}</span>
+                        <div class="flex space-x-1">
+                            ${!d.settled ? `<button data-debtid="${d.id}" class="settle-debt-btn p-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded hover:bg-emerald-500/20 transition-all text-xs">Settle</button>` : ''}
+                            <button data-debtid="${d.id}" class="purge-debt-btn p-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded hover:bg-rose-500/20 transition-all text-xs">Purge</button>
+                        </div>
+                    </div>
+                `;
+                lentContainer.appendChild(el);
+            });
+        }
+    }
+
+    const borrowedContainer = document.getElementById('borrowed-list-container');
+    if (borrowedContainer) {
+        borrowedContainer.innerHTML = '';
+        const borrowedItems = state.debts.filter(d => d.type === 'borrowed');
+        if (borrowedItems.length === 0) {
+            borrowedContainer.innerHTML = '<p class="text-sm text-slate-500 text-center py-4">No active accounts payable liabilities.</p>';
+        } else {
+            borrowedItems.forEach(d => {
+                const el = document.createElement('div');
+                el.className = `p-4 rounded-xl border flex justify-between items-center ${d.settled ? 'bg-slate-900/40 border-slate-800/40 opacity-50' : 'bg-slate-900 border-slate-800'}`;
+                el.innerHTML = `
+                    <div>
+                        <div class="font-semibold text-sm ${d.settled ? 'line-through text-slate-500' : 'text-slate-200'}">${d.entityName}</div>
+                        <div class="text-xs text-slate-500">${d.date} • ${d.email || 'No email specified'}</div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm font-bold ${d.settled ? 'text-slate-500' : 'text-rose-400'}">${formatCurrency(d.amount)}</span>
+                        <div class="flex space-x-1">
+                            ${!d.settled ? `<button data-debtid="${d.id}" class="settle-debt-btn p-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded hover:bg-emerald-500/20 transition-all text-xs">Settle</button>` : ''}
+                            <button data-debtid="${d.id}" class="purge-debt-btn p-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded hover:bg-rose-500/20 transition-all text-xs">Purge</button>
+                        </div>
+                    </div>
+                `;
+                borrowedContainer.appendChild(el);
+            });
+        }
+    }
+
+    populateCategorySelectors();
+    updateCharts();
+}
 
     function rebuildAnalyticsSummary() {
         const breakdownContainer = document.getElementById('analytics-breakdown-list');
