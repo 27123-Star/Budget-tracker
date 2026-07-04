@@ -507,7 +507,63 @@ function updateAuthUI() {
     }
 
     populateCategorySelectors();
-    updateCharts();
+  function updateCharts() {
+    const canvas = document.getElementById('analytics-canvas');
+    
+    // 👉 SAFE GUARD: If the chart canvas doesn't exist in the HTML layout, exit quietly instead of crashing!
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    if (window.myDashboardChart) {
+        window.myDashboardChart.destroy();
+    }
+
+    let categoriesMap = {};
+    state.transactions.filter(t => t.type === 'expense').forEach(t => {
+        categoriesMap[t.category] = (categoriesMap[t.category] || 0) + t.amount;
+    });
+
+    const labels = Object.keys(categoriesMap);
+    const data = Object.values(categoriesMap);
+
+    if (labels.length === 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+
+    window.myDashboardChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: [
+                    'rgba(45, 212, 191, 0.6)',
+                    'rgba(56, 189, 248, 0.6)',
+                    'rgba(251, 113, 133, 0.6)',
+                    'rgba(192, 132, 252, 0.6)',
+                    'rgba(251, 146, 60, 0.6)'
+                ],
+                borderColor: [
+                    '#2dd4bf', '#38bdf8', '#fb7185', '#c084fc', '#fb923c'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: state.theme === 'dark' ? '#94a3b8' : '#64748b' }
+                }
+            }
+        }
+    });
+}
 }
 
     function rebuildAnalyticsSummary() {
