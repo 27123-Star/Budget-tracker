@@ -113,7 +113,7 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
         renderUI();
     }
 
-   function updateAuthUI() {
+function updateAuthUI() {
     const authButton = document.getElementById('auth-toggle-btn');
     const authStatus = document.getElementById('auth-status-text');
     const connectedEmail = document.getElementById('connected-account-email');
@@ -133,7 +133,6 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
             : 'hidden sm:inline-flex items-center rounded-full border border-slate-700/70 bg-slate-800/70 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-300';
     }
 
-    // 👉 ADDED PROTECTION HERE
     if (connectedEmail) {
         const emailLabel = activeSession?.user?.email || 'guest@local';
         connectedEmail.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse"></span>Connected as: ${emailLabel}`;
@@ -154,18 +153,6 @@ const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SU
         }
     }
 }
-
-    function showAuthMessage(message, type = 'info') {
-        const authMessage = document.getElementById('auth-message');
-        if (!authMessage) return;
-        authMessage.textContent = message;
-        authMessage.className = type === 'error'
-            ? 'rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200'
-            : type === 'success'
-                ? 'rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200'
-                : 'rounded-xl border border-slate-700/80 bg-slate-950/70 px-3 py-2 text-sm text-slate-300';
-        authMessage.classList.remove('hidden');
-    }
 
     function setAuthMode(mode) {
         authMode = mode;
