@@ -642,330 +642,321 @@ function updateAuthUI() {
     }
 
 function bindSystemEventDrivers() {
-        const tabsMap = {
-            'tab-trigger-dashboard': 'view-dashboard',
-            'tab-trigger-analytics': 'view-analytics',
-            'tab-trigger-lending': 'view-lending'
-        };
+    const tabsMap = {
+        'tab-trigger-dashboard': 'view-dashboard',
+        'tab-trigger-analytics': 'view-analytics',
+        'tab-trigger-lending': 'view-lending'
+    };
 
-        Object.keys(tabsMap).forEach(triggerId => {
-            const triggerEl = document.getElementById(triggerId);
+    Object.keys(tabsMap).forEach(triggerId => {
+        const triggerEl = document.getElementById(triggerId);
+        if (!triggerEl) return;
+
+        triggerEl.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-teal-400', 'text-teal-300', 'dark:text-teal-300');
+                btn.classList.add('border-transparent', 'text-slate-400', 'dark:text-slate-400', 'light:text-slate-500');
+            });
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('block');
+                pane.classList.add('hidden');
+            });
+
+            this.classList.add('border-teal-400', 'text-teal-300', 'dark:text-teal-300');
+            this.classList.remove('border-transparent', 'text-slate-400');
             
-            // 👉 SAFE GUARD: If a tab doesn't exist in your index.html, skip it instead of crashing!
-            if (!triggerEl) return;
-
-            triggerEl.addEventListener('click', function() {
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.remove('border-teal-400', 'text-teal-300', 'dark:text-teal-300');
-                    btn.classList.add('border-transparent', 'text-slate-400', 'dark:text-slate-400', 'light:text-slate-500');
-                });
-                document.querySelectorAll('.tab-pane').forEach(pane => {
-                    pane.classList.remove('block');
-                    pane.classList.add('hidden');
-                });
-
-                this.classList.add('border-teal-400', 'text-teal-300', 'dark:text-teal-300');
-                this.classList.remove('border-transparent', 'text-slate-400');
-                
-                const targetPane = document.getElementById(tabsMap[triggerId]);
-                if (targetPane) {
-                    targetPane.classList.remove('hidden');
-                    targetPane.classList.add('block');
-                }
-
-                if (triggerId === 'tab-trigger-analytics') {
-                    rebuildAnalyticsSummary();
-                }
-            });
-        });
-
-        // Safe guards for other elements inside the function
-        const themeBtn = document.getElementById('theme-toggle-btn');
-        if (themeBtn) {
-            themeBtn.addEventListener('click', () => {
-                state.theme = state.theme === 'dark' ? 'light' : 'dark';
-                applyTheme();
-                saveState();
-            });
-        }
-
-        const resetBtn = document.getElementById('reset-data-btn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => {
-                if (confirm('Confirm deletion of all entries and reset the balance to zero?')) {
-                    state.transactions = [];
-                    state.goals = [];
-                    state.debts = [];
-                    state.handCash = 0;
-                    saveState();
-                }
-            });
-        }
-
-        document.querySelectorAll('.modal-close-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                closeModal(this.getAttribute('data-modal'));
-            });
-        });
-
-        const authToggleBtn = document.getElementById('auth-toggle-btn');
-        if (authToggleBtn) {
-            authToggleBtn.addEventListener('click', () => {
-                if (activeSession?.user) {
-                    void handleLogout();
-                } else {
-                    const authForm = document.getElementById('auth-form');
-                    if (authForm) authForm.reset();
-                    setAuthMode('signin');
-                    openModal('auth-modal');
-                }
-            });
-        }
-
-        const deleteAccountBtn = document.getElementById('delete-account-btn');
-        if (deleteAccountBtn) {
-            deleteAccountBtn.addEventListener('click', async () => {
-                await deleteAccountData();
-            });
-        }
-
-        const authSwitchBtn = document.getElementById('auth-switch-btn');
-        if (authSwitchBtn) {
-            authSwitchBtn.addEventListener('click', () => {
-                setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
-            });
-        }
-
-        const authForm = document.getElementById('auth-form');
-        if (authForm) {
-            authForm.addEventListener('submit', handleAuthSubmit);
-        }
-
-        const quickAddBtn = document.getElementById('quick-add-btn');
-        if (quickAddBtn) {
-            quickAddBtn.addEventListener('click', () => {
-                const txDate = document.getElementById('tx-date');
-                if (txDate) txDate.value = new Date().toISOString().split('T')[0];
-                openModal('transaction-modal');
-            });
-        }
-
-        const handCashWidget = document.getElementById('hand-cash-widget');
-        if (handCashWidget) {
-            handCashWidget.addEventListener('click', () => {
-                const cashInput = document.getElementById('hand-cash-modal-input');
-                if (cashInput) cashInput.value = state.handCash;
-                openModal('hand-cash-edit-modal');
-            });
-        }
-
-        const handCashSaveBtn = document.getElementById('hand-cash-modal-save-btn');
-        if (handCashSaveBtn) {
-            handCashSaveBtn.addEventListener('click', () => {
-                const cashInput = document.getElementById('hand-cash-modal-input');
-                const inputVal = cashInput ? parseFloat(cashInput.value) : NaN;
-                if (!isNaN(inputVal) && inputVal >= 0) {
-                    state.handCash = inputVal;
-                    closeModal('hand-cash-edit-modal');
-                    saveState();
-                } else {
-                    alert('Invalid parameters specified.');
-                }
-            });
-        }
-
-        const addCategoryBtn = document.getElementById('add-custom-category-btn');
-        if (addCategoryBtn) {
-            addCategoryBtn.addEventListener('click', () => {
-                const targetName = prompt('Enter complete technical name designator for alternative unique categorization:');
-                if (targetName && targetName.trim().length > 1) {
-                    const dynamicTrim = targetName.trim();
-                    if (!state.categories.includes(dynamicTrim)) {
-                        state.categories.push(dynamicTrim);
-                        saveState();
-                    } else {
-                        alert('Classification identifier matrix conflicts exist.');
-                    }
-                }
-            });
-        }
-
-        const addGoalTriggerBtn = document.getElementById('add-goal-trigger-btn');
-        if (addGoalTriggerBtn) {
-            addGoalTriggerBtn.addEventListener('click', () => {
-                const goalForm = document.getElementById('goal-form');
-                if (goalForm) goalForm.reset();
-                openModal('goal-modal');
-            });
-        }
-
-        const lendingModalTriggerBtn = document.getElementById('lending-modal-trigger-btn');
-        if (lendingModalTriggerBtn) {
-            lendingModalTriggerBtn.addEventListener('click', () => {
-                const lendingForm = document.getElementById('lending-form');
-                if (lendingForm) lendingForm.reset();
-                const lendDate = document.getElementById('lend-date');
-                if (lendDate) lendDate.value = new Date().toISOString().split('T')[0];
-                openModal('lending-modal');
-            });
-        }
-
-        const typeBtnExpense = document.getElementById('type-btn-expense');
-        if (typeBtnExpense) {
-            typeBtnExpense.addEventListener('click', function() {
-                this.className = 'py-2 text-sm font-semibold rounded-lg text-rose-400 bg-rose-500/10 border border-rose-500/30 transition-all focus:outline-none';
-                const incomeBtn = document.getElementById('type-btn-income');
-                if (incomeBtn) incomeBtn.className = 'py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 focus:outline-none transition-all';
-                const txType = document.getElementById('tx-type');
-                if (txType) txType.value = 'expense';
-            });
-        }
-
-        const typeBtnIncome = document.getElementById('type-btn-income');
-        if (typeBtnIncome) {
-            typeBtnIncome.addEventListener('click', function() {
-                this.className = 'py-2 text-sm font-semibold rounded-lg text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 transition-all focus:outline-none';
-                const expenseBtn = document.getElementById('type-btn-expense');
-                if (expenseBtn) expenseBtn.className = 'py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 focus:outline-none transition-all';
-                const txType = document.getElementById('tx-type');
-                if (txType) txType.value = 'income';
-            });
-        }
-
-        const lendTypeBtnLent = document.getElementById('lend-type-btn-lent');
-        if (lendTypeBtnLent) {
-            lendTypeBtnLent.addEventListener('click', function() {
-                this.className = 'py-2 text-sm font-semibold rounded-lg text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 transition-all focus:outline-none';
-                const borrowedBtn = document.getElementById('lend-type-btn-borrowed');
-                if (borrowedBtn) borrowedBtn.className = 'py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 focus:outline-none transition-all';
-                const lendType = document.getElementById('lend-type');
-                if (lendType) lendType.value = 'lent';
-            });
-        }
-
-        const lendTypeBtnBorrowed = document.getElementById('lend-type-btn-borrowed');
-        if (lendTypeBtnBorrowed) {
-            lendTypeBtnBorrowed.addEventListener('click', function() {
-                this.className = 'py-2 text-sm font-semibold rounded-lg text-rose-400 bg-rose-500/10 border border-rose-500/30 transition-all focus:outline-none';
-                const lentBtn = document.getElementById('lend-type-btn-lent');
-                if (lentBtn) lentBtn.className = 'py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 focus:outline-none transition-all';
-                const lendType = document.getElementById('lend-type');
-                if (lendType) lendType.value = 'borrowed';
-            });
-        }
-
-        const transactionForm = document.getElementById('transaction-form');
-        if (transactionForm) {
-            transactionForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const newTx = {
-                    id: 'tx-' + Date.now(),
-                    date: document.getElementById('tx-date').value,
-                    description: document.getElementById('tx-description').value.trim(),
-                    category: document.getElementById('tx-category').value,
-                    amount: Math.abs(parseFloat(document.getElementById('tx-amount').value)),
-                    type: document.getElementById('tx-type').value
-                };
-                state.transactions.push(newTx);
-                closeModal('transaction-modal');
-                this.reset();
-                saveState();
-            });
-        }
-
-        const goalForm = document.getElementById('goal-form');
-        if (goalForm) {
-            goalForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const newGoal = {
-                    id: 'goal-' + Date.now(),
-                    name: document.getElementById('goal-name').value.trim(),
-                    target: Math.abs(parseInt(document.getElementById('goal-target').value, 10)),
-                    current: Math.abs(parseInt(document.getElementById('goal-current').value, 10)),
-                    date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                };
-                state.goals.push(newGoal);
-                closeModal('goal-modal');
-                this.reset();
-                saveState();
-            });
-        }
-
-        const lendingForm = document.getElementById('lending-form');
-        if (lendingForm) {
-            lendingForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const newAgreement = {
-                    id: 'debt-' + Date.now(),
-                    date: document.getElementById('lend-date').value,
-                    entityName: document.getElementById('lend-entity').value.trim(),
-                    email: document.getElementById('lend-email').value.trim(),
-                    amount: Math.abs(parseFloat(document.getElementById('lend-amount').value)),
-                    type: document.getElementById('lend-type').value,
-                    settled: false
-                };
-                state.debts.push(newAgreement);
-                closeModal('lending-modal');
-                this.reset();
-                saveState();
-            });
-        }
-
-        const txRows = document.getElementById('transaction-table-rows');
-        if (txRows) {
-            txRows.addEventListener('click', function(e) {
-                const btn = e.target.closest('.delete-tx-btn');
-                if (btn) {
-                    const id = btn.getAttribute('data-txid');
-                    state.transactions = state.transactions.filter(t => t.id !== id);
-                    saveState();
-                }
-            });
-        }
-
-        const goalsContainer = document.getElementById('goals-list-container');
-        if (goalsContainer) {
-            goalsContainer.addEventListener('click', function(e) {
-                const btn = e.target.closest('.delete-goal-btn');
-                if (btn) {
-                    const id = btn.getAttribute('data-goalid');
-                    state.goals = state.goals.filter(g => g.id !== id);
-                    saveState();
-                }
-            });
-        }
-
-        const handleLendingInteractions = function(e) {
-            const settleBtn = e.target.closest('.settle-debt-btn');
-            const purgeBtn = e.target.closest('.purge-debt-btn');
-
-            if (settleBtn) {
-                const id = settleBtn.getAttribute('data-debtid');
-                const targetIndex = state.debts.findIndex(d => d.id === id);
-                if (targetIndex !== -1) {
-                    state.debts[targetIndex].settled = true;
-                    saveState();
-                }
+            const targetPane = document.getElementById(tabsMap[triggerId]);
+            if (targetPane) {
+                targetPane.classList.remove('hidden');
+                targetPane.classList.add('block');
             }
-            if (purgeBtn) {
-                const id = purgeBtn.getAttribute('data-debtid');
-                state.debts = state.debts.filter(d => d.id !== id);
-                saveState();
+
+            if (triggerId === 'tab-trigger-analytics') {
+                rebuildAnalyticsSummary();
             }
-        };
+        });
+    });
 
-        const lentContainer = document.getElementById('lent-list-container');
-        if (lentContainer) lentContainer.addEventListener('click', handleLendingInteractions);
-        
-        const borrowedContainer = document.getElementById('borrowed-list-container');
-        if (borrowedContainer) borrowedContainer.addEventListener('click', handleLendingInteractions);
-    
-
-        document.getElementById('lent-list-container').addEventListener('click', handleLendingInteractions);
-        document.getElementById('borrowed-list-container').addEventListener('click', handleLendingInteractions);
-
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            applyTheme();
+            saveState();
+        });
     }
 
+    const resetBtn = document.getElementById('reset-data-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            if (confirm('Confirm deletion of all entries and reset the balance to zero?')) {
+                state.transactions = [];
+                state.goals = [];
+                state.debts = [];
+                state.handCash = 0;
+                saveState();
+            }
+        });
+    }
+
+    document.querySelectorAll('.modal-close-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            closeModal(this.getAttribute('data-modal'));
+        });
+    });
+
+    const authToggleBtn = document.getElementById('auth-toggle-btn');
+    if (authToggleBtn) {
+        authToggleBtn.addEventListener('click', () => {
+            if (activeSession?.user) {
+                void handleLogout();
+            } else {
+                const authForm = document.getElementById('auth-form');
+                if (authForm) authForm.reset();
+                setAuthMode('signin');
+                openModal('auth-modal');
+            }
+        });
+    }
+
+    const deleteAccountBtn = document.getElementById('delete-account-btn');
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', async () => {
+            await deleteAccountData();
+        });
+    }
+
+    const authSwitchBtn = document.getElementById('auth-switch-btn');
+    if (authSwitchBtn) {
+        authSwitchBtn.addEventListener('click', () => {
+            setAuthMode(authMode === 'signin' ? 'signup' : 'signin');
+        });
+    }
+
+    const authForm = document.getElementById('auth-form');
+    if (authForm) {
+        authForm.addEventListener('submit', handleAuthSubmit);
+    }
+
+    const quickAddBtn = document.getElementById('quick-add-btn');
+    if (quickAddBtn) {
+        quickAddBtn.addEventListener('click', () => {
+            const txDate = document.getElementById('tx-date');
+            if (txDate) txDate.value = new Date().toISOString().split('T')[0];
+            openModal('transaction-modal');
+        });
+    }
+
+    const handCashWidget = document.getElementById('hand-cash-widget');
+    if (handCashWidget) {
+        handCashWidget.addEventListener('click', () => {
+            const cashInput = document.getElementById('hand-cash-modal-input');
+            if (cashInput) cashInput.value = state.handCash;
+            openModal('hand-cash-edit-modal');
+        });
+    }
+
+    const handCashSaveBtn = document.getElementById('hand-cash-modal-save-btn');
+    if (handCashSaveBtn) {
+        handCashSaveBtn.addEventListener('click', () => {
+            const cashInput = document.getElementById('hand-cash-modal-input');
+            const inputVal = cashInput ? parseFloat(cashInput.value) : NaN;
+            if (!isNaN(inputVal) && inputVal >= 0) {
+                state.handCash = inputVal;
+                closeModal('hand-cash-edit-modal');
+                saveState();
+            } else {
+                alert('Invalid parameters specified.');
+            }
+        });
+    }
+
+    const addCategoryBtn = document.getElementById('add-custom-category-btn');
+    if (addCategoryBtn) {
+        addCategoryBtn.addEventListener('click', () => {
+            const targetName = prompt('Enter complete technical name designator for alternative unique categorization:');
+            if (targetName && targetName.trim().length > 1) {
+                const dynamicTrim = targetName.trim();
+                if (!state.categories.includes(dynamicTrim)) {
+                    state.categories.push(dynamicTrim);
+                    saveState();
+                } else {
+                    alert('Classification identifier matrix conflicts exist.');
+                }
+            }
+        });
+    }
+
+    const addGoalTriggerBtn = document.getElementById('add-goal-trigger-btn');
+    if (addGoalTriggerBtn) {
+        addGoalTriggerBtn.addEventListener('click', () => {
+            const goalForm = document.getElementById('goal-form');
+            if (goalForm) goalForm.reset();
+            openModal('goal-modal');
+        });
+    }
+
+    const lendingModalTriggerBtn = document.getElementById('lending-modal-trigger-btn');
+    if (lendingModalTriggerBtn) {
+        lendingModalTriggerBtn.addEventListener('click', () => {
+            const lendingForm = document.getElementById('lending-form');
+            if (lendingForm) lendingForm.reset();
+            const lendDate = document.getElementById('lend-date');
+            if (lendDate) lendDate.value = new Date().toISOString().split('T')[0];
+            openModal('lending-modal');
+        });
+    }
+
+    const typeBtnExpense = document.getElementById('type-btn-expense');
+    if (typeBtnExpense) {
+        typeBtnExpense.addEventListener('click', function() {
+            this.className = 'py-2 text-sm font-semibold rounded-lg text-rose-400 bg-rose-500/10 border border-rose-500/30 transition-all focus:outline-none';
+            const incomeBtn = document.getElementById('type-btn-income');
+            if (incomeBtn) incomeBtn.className = 'py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 focus:outline-none transition-all';
+            const txType = document.getElementById('tx-type');
+            if (txType) txType.value = 'expense';
+        });
+    }
+
+    const typeBtnIncome = document.getElementById('type-btn-income');
+    if (typeBtnIncome) {
+        typeBtnIncome.addEventListener('click', function() {
+            this.className = 'py-2 text-sm font-semibold rounded-lg text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 transition-all focus:outline-none';
+            const expenseBtn = document.getElementById('type-btn-expense');
+            if (expenseBtn) expenseBtn.className = 'py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 focus:outline-none transition-all';
+            const txType = document.getElementById('tx-type');
+            if (txType) txType.value = 'income';
+        });
+    }
+
+    const lendTypeBtnLent = document.getElementById('lend-type-btn-lent');
+    if (lendTypeBtnLent) {
+        lendTypeBtnLent.addEventListener('click', function() {
+            this.className = 'py-2 text-sm font-semibold rounded-lg text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 transition-all focus:outline-none';
+            const borrowedBtn = document.getElementById('lend-type-btn-borrowed');
+            if (borrowedBtn) borrowedBtn.className = 'py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 focus:outline-none transition-all';
+            const lendType = document.getElementById('lend-type');
+            if (lendType) lendType.value = 'lent';
+        });
+    }
+
+    const lendTypeBtnBorrowed = document.getElementById('lend-type-btn-borrowed');
+    if (lendTypeBtnBorrowed) {
+        lendTypeBtnBorrowed.addEventListener('click', function() {
+            this.className = 'py-2 text-sm font-semibold rounded-lg text-rose-400 bg-rose-500/10 border border-rose-500/30 transition-all focus:outline-none';
+            const lentBtn = document.getElementById('lend-type-btn-lent');
+            if (lentBtn) lentBtn.className = 'py-2 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 focus:outline-none transition-all';
+            const lendType = document.getElementById('lend-type');
+            if (lendType) lendType.value = 'borrowed';
+        });
+    }
+
+    const transactionForm = document.getElementById('transaction-form');
+    if (transactionForm) {
+        transactionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newTx = {
+                id: 'tx-' + Date.now(),
+                date: document.getElementById('tx-date').value,
+                description: document.getElementById('tx-description').value.trim(),
+                category: document.getElementById('tx-category').value,
+                amount: Math.abs(parseFloat(document.getElementById('tx-amount').value)),
+                type: document.getElementById('tx-type').value
+            };
+            state.transactions.push(newTx);
+            closeModal('transaction-modal');
+            this.reset();
+            saveState();
+        });
+    }
+
+    const goalForm = document.getElementById('goal-form');
+    if (goalForm) {
+        goalForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newGoal = {
+                id: 'goal-' + Date.now(),
+                name: document.getElementById('goal-name').value.trim(),
+                target: Math.abs(parseInt(document.getElementById('goal-target').value, 10)),
+                current: Math.abs(parseInt(document.getElementById('goal-current').value, 10)),
+                date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            };
+            state.goals.push(newGoal);
+            closeModal('goal-modal');
+            this.reset();
+            saveState();
+        });
+    }
+
+    const lendingForm = document.getElementById('lending-form');
+    if (lendingForm) {
+        lendingForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newAgreement = {
+                id: 'debt-' + Date.now(),
+                date: document.getElementById('lend-date').value,
+                entityName: document.getElementById('lend-entity').value.trim(),
+                email: document.getElementById('lend-email').value.trim(),
+                amount: Math.abs(parseFloat(document.getElementById('lend-amount').value)),
+                type: document.getElementById('lend-type').value,
+                settled: false
+            };
+            state.debts.push(newAgreement);
+            closeModal('lending-modal');
+            this.reset();
+            saveState();
+        });
+    }
+
+    const txRows = document.getElementById('transaction-table-rows');
+    if (txRows) {
+        txRows.addEventListener('click', function(e) {
+            const btn = e.target.closest('.delete-tx-btn');
+            if (btn) {
+                const id = btn.getAttribute('data-txid');
+                state.transactions = state.transactions.filter(t => t.id !== id);
+                saveState();
+            }
+        });
+    }
+
+    const goalsContainer = document.getElementById('goals-list-container');
+    if (goalsContainer) {
+        goalsContainer.addEventListener('click', function(e) {
+            const btn = e.target.closest('.delete-goal-btn');
+            if (btn) {
+                const id = btn.getAttribute('data-goalid');
+                state.goals = state.goals.filter(g => g.id !== id);
+                saveState();
+            }
+        });
+    }
+
+    const handleLendingInteractions = function(e) {
+        const settleBtn = e.target.closest('.settle-debt-btn');
+        const purgeBtn = e.target.closest('.purge-debt-btn');
+
+        if (settleBtn) {
+            const id = settleBtn.getAttribute('data-debtid');
+            const targetIndex = state.debts.findIndex(d => d.id === id);
+            if (targetIndex !== -1) {
+                state.debts[targetIndex].settled = true;
+                saveState();
+            }
+        }
+        if (purgeBtn) {
+            const id = purgeBtn.getAttribute('data-debtid');
+            state.debts = state.debts.filter(d => d.id !== id);
+            saveState();
+        }
+    };
+
+    const lentContainer = document.getElementById('lent-list-container');
+    if (lentContainer) lentContainer.addEventListener('click', handleLendingInteractions);
+    
+    const borrowedContainer = document.getElementById('borrowed-list-container');
+    if (borrowedContainer) borrowedContainer.addEventListener('click', handleLendingInteractions);
+}
     function initializeAuth() {
         updateAuthUI();
         setAuthMode('signin');
